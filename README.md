@@ -90,7 +90,7 @@ public/
 ## 6) Development Roadmap
 
 1. **Phase 1**: setup + UI foundation + Prisma schema ✅
-2. **Phase 2**: authentication and user model integration
+2. **Phase 2**: authentication and user model integration ✅
 3. **Phase 3**: catalog, categories, search, filters
 4. **Phase 4**: book details + controlled preview
 5. **Phase 5**: cart + multi-step checkout
@@ -164,6 +164,33 @@ npm run prisma:seed
 ## Testing Phase 1
 
 ```bash
+npm run lint
+npm run build
+```
+
+
+## Phase 2 Delivered
+
+- Auth.js integration with:
+  - Google OAuth sign-in
+  - Email + password credentials sign-in
+- Secure registration flow with:
+  - Server-side zod validation
+  - bcrypt password hashing
+  - Duplicate email/phone prevention
+- Route protection middleware:
+  - Auth required for account/orders/checkout/cart
+  - Admin route guard for `/admin`
+- Authentication pages:
+  - `/auth/login`
+  - `/auth/register`
+- Session role propagation (`USER` / `ADMIN`) for authorization checks
+- Phone authentication architecture env placeholders for upcoming OTP provider integration
+
+## Testing Phase 2
+
+```bash
+npm run prisma:generate
 npm run lint
 npm run build
 ```
