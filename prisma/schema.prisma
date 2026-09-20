@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum BookFormat {
+  HARDCOVER
+  PAPERBACK
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  PACKED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+model User {
+  id            String              @id @default(cuid())
+  name          String
+  email         String              @unique
+  phone         String?             @unique
+  passwordHash  String?
+  image         String?
+  role          UserRole            @default(USER)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  addresses     Address[]
+  carts         Cart[]
+  orders        Order[]
+  purchases     AudiobookPurchase[]
+  progress      ListeningProgress[]
+  reviews       Review[]
+  wishlistItems Wishlist[]
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  fullName     String
+  phone        String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  pincode      String
+  country      String
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders       Order[]
+
+  @@index([userId])
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  books Book[]
+}
+
+model Book {
+  id              String      @id @default(cuid())
+  title           String
+  slug            String      @unique
+  description     String
+  introduction    String?
+  author          String
+  publisher       String
+  isbn            String      @unique
+  categoryId      String
+  language        String
+  publicationDate DateTime
+  pages           Int
+  format          BookFormat
+  price           Decimal     @db.Decimal(10, 2)
+  discountPrice   Decimal?    @db.Decimal(10, 2)
+  stock           Int
+  coverImage      String?
+  rating          Decimal?    @db.Decimal(3, 2)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  category        Category    @relation(fields: [categoryId], references: [id])
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  reviews         Review[]
+  wishlistedBy    Wishlist[]
+
+  @@index([title])
+  @@index([author])
+  @@index([publisher])
+}
+
+model Audiobook {
+  id          String              @id @default(cuid())
+  title       String
+  slug        String              @unique
+  description String
+  author      String
+  narrator    String
+  price       Decimal             @db.Decimal(10, 2)
+  coverImage  String?
+  duration    Int
+  published   Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  chapters    AudiobookChapter[]
+  purchases   AudiobookPurchase[]
+  progress    ListeningProgress[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@index([title])
+}
+
+model AudiobookChapter {
+  id                      String           @id @default(cuid())
+  audiobookId             String
+  title                   String
+  chapterNumber           Int
+  duration                Int
+  protectedAudioReference String
+  audiobook               Audiobook        @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
+  progress                ListeningProgress[]
+
+  @@unique([audiobookId, chapterNumber])
+  @@index([audiobookId])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@unique([userId])
+}
+
+model CartItem {
+  id          String     @id @default(cuid())
+  cartId      String
+  bookId      String?
+  audiobookId String?
+  quantity    Int        @default(1)
+  price       Decimal    @db.Decimal(10, 2)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  cart        Cart       @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  book        Book?      @relation(fields: [bookId], references: [id])
+  audiobook   Audiobook? @relation(fields: [audiobookId], references: [id])
+
+  @@index([cartId])
+  @@index([bookId])
+  @@index([audiobookId])
+}
+
+model Order {
+  id            String         @id @default(cuid())
+  orderNumber   String         @unique
+  userId        String
+  addressId     String
+  subtotal      Decimal        @db.Decimal(10, 2)
+  shipping      Decimal        @db.Decimal(10, 2)
+  tax           Decimal        @db.Decimal(10, 2)
+  discount      Decimal        @db.Decimal(10, 2)
+  total         Decimal        @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus  @default(PENDING)
+  orderStatus   OrderStatus    @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id])
+  address       Address        @relation(fields: [addressId], references: [id])
+  items         OrderItem[]
+  payment       Payment?
+  purchases     AudiobookPurchase[]
+
+  @@index([userId])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id          String     @id @default(cuid())
+  orderId     String
+  bookId      String?
+  audiobookId String?
+  quantity    Int
+  price       Decimal    @db.Decimal(10, 2)
+  order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  book        Book?      @relation(fields: [bookId], references: [id])
+  audiobook   Audiobook? @relation(fields: [audiobookId], references: [id])
+
+  @@index([orderId])
+  @@index([bookId])
+  @@index([audiobookId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId        String        @unique
+  provider       String
+  transactionId  String?
+  amount         Decimal       @db.Decimal(10, 2)
+  status         PaymentStatus @default(PENDING)
+  providerPayload Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+}
+
+model AudiobookPurchase {
+  id          String    @id @default(cuid())
+  userId      String
+  audiobookId String
+  orderId     String
+  purchasedAt DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  audiobook   Audiobook @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, audiobookId])
+  @@index([orderId])
+}
+
+model ListeningProgress {
+  id              String           @id @default(cuid())
+  userId          String
+  audiobookId     String
+  chapterId       String
+  progressSeconds Int              @default(0)
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  audiobook       Audiobook        @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
+  chapter         AudiobookChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+  @@index([audiobookId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  rating    Int
+  comment   String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId, approved])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+}
+
+model Coupon {
+  id             String     @id @default(cuid())
+  code           String     @unique
+  type           CouponType
+  value          Decimal    @db.Decimal(10, 2)
+  expiryDate     DateTime
+  usageLimit     Int
+  usageCount     Int        @default(0)
+  minimumOrder   Decimal?   @db.Decimal(10, 2)
+  active         Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
