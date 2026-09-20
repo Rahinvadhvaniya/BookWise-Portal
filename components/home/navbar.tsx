@@ -1,18 +1,26 @@
-const navLinks = ["Books", "Audiobooks", "Categories", "Best Sellers", "New Arrivals"];
+import Link from "next/link";
+
+const navLinks = [
+  { label: "Books", href: "/books" },
+  { label: "Audiobooks", href: "/audiobooks" },
+  { label: "Categories", href: "/books" },
+  { label: "Best Sellers", href: "/books" },
+  { label: "New Arrivals", href: "/books" },
+];
 
 export function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <a href="/" className="font-semibold tracking-wide">
+        <Link href="/" className="font-semibold tracking-wide">
           BookWise Portal
-        </a>
+        </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-[var(--muted)] md:flex">
           {navLinks.map((link) => (
-            <a key={link} href="#" className="transition hover:text-[var(--foreground)]">
-              {link}
-            </a>
+            <Link key={link.label} href={link.href} className="transition hover:text-[var(--foreground)]">
+              {link.label}
+            </Link>
           ))}
         </nav>
 
